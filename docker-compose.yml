@@ -15,7 +15,7 @@ services:
       DIRECT_URL: ${DIRECT_URL}
       APP_PORT: 3001
       APP_ENV: development
-      FRONTEND_URL: http://localhost:3000
+      FRONTEND_URL: https://mylms-jade.vercel.app
     volumes:
       - ./backend:/app
       - /app/node_modules
@@ -31,7 +31,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      NEXT_PUBLIC_API_URL: https://mylms-jade.vercel.app/api
       NEXT_PUBLIC_MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY:-}
     depends_on:
       - backend
