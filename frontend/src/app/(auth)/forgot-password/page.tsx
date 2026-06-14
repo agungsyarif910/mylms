@@ -44,8 +44,8 @@ export default function ForgotPasswordPage() {
                 <span style={{ fontSize: '48px', display: 'block', marginBottom: '16px' }}>📧</span>
                 <h3 style={{ color: 'var(--text-primary)', marginBottom: '8px' }}>Email Terkirim!</h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.6' }}>
-                  Jika email <strong>{email}</strong> terdaftar di sistem kami, Anda akan menerima
-                  link untuk mereset password. Silakan cek inbox dan folder spam Anda.
+                  Link reset password telah dikirim ke <strong>{email}</strong>.
+                  Silakan cek inbox dan folder spam Anda.
                 </p>
               </div>
               <p className={styles.authFooter}>

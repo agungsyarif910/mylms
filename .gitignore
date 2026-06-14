@@ -28,3 +28,5 @@ backend/prisma/generated/
 
 # Misc
 *.tsbuildinfo
+
+.vercel

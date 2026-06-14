@@ -209,12 +209,8 @@ export class AuthService {
       where: { email: email.toLowerCase() },
     });
 
-    // Always return success message (security: don't expose whether email exists)
-    const successMessage =
-      'Jika email terdaftar, kami akan mengirimkan link reset password.';
-
     if (!user) {
-      return { message: successMessage };
+      throw new NotFoundException('Email tidak terdaftar di sistem kami.');
     }
 
     // Generate password reset token
@@ -230,14 +226,21 @@ export class AuthService {
       },
     });
 
-    // Send password reset email
-    this.mailService
-      .sendPasswordResetEmail(user.email, user.fullName, passwordResetToken)
-      .catch((err) => {
-        console.error('Failed to send password reset email:', err.message);
-      });
+    // Send password reset email (await so errors are caught)
+    try {
+      await this.mailService.sendPasswordResetEmail(
+        user.email,
+        user.fullName,
+        passwordResetToken,
+      );
+    } catch (err) {
+      console.error('Failed to send password reset email:', err.message);
+      throw new BadRequestException(
+        'Gagal mengirim email reset password. Silakan coba lagi nanti.',
+      );
+    }
 
-    return { message: successMessage };
+    return { message: 'Link reset password telah dikirim ke email Anda.' };
   }
 
   async resetPassword(token: string, newPassword: string) {
