@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../common/prisma/prisma.service';
 import { MidtransService } from './midtrans.service';
 import { CreatePaymentDto } from './dto/payment.dto';
-import { v4 as uuidv4 } from 'uuid';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class PaymentsService {
@@ -34,7 +34,7 @@ export class PaymentsService {
       throw new BadRequestException('Pembayaran sudah dilakukan');
     }
 
-    const orderId = `LMS-${Date.now()}-${uuidv4().substring(0, 8)}`;
+    const orderId = `LMS-${Date.now()}-${crypto.randomUUID().substring(0, 8)}`;
     const amount = Number(enrollment.course.price);
 
     // Create Midtrans transaction

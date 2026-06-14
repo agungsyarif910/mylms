@@ -6,7 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../common/prisma/prisma.service';
 import PDFDocument from 'pdfkit';
-import { v4 as uuidv4 } from 'uuid';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -39,7 +39,7 @@ export class CertificatesService {
       throw new BadRequestException('Enrollment belum aktif');
     }
 
-    const certificateNumber = `CERT-${Date.now()}-${uuidv4().substring(0, 6).toUpperCase()}`;
+    const certificateNumber = `CERT-${Date.now()}-${crypto.randomUUID().substring(0, 6).toUpperCase()}`;
     const issuerName = this.configService.get('CERTIFICATE_SIGNER') || 'Instructor';
 
     // Generate PDF
