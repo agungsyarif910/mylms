@@ -25,11 +25,14 @@ export class MailService implements OnModuleInit {
         user,
         pass,
       },
-      // Add connection timeout
+      // Vercel serverless functions have limited execution time
+      // Use shorter timeouts to fail fast rather than hang
       connectionTimeout: 10000, // 10 seconds
       greetingTimeout: 10000,
       socketTimeout: 15000,
-    });
+      // Pool connections for reuse across invocations
+      pool: false, // Disable pool in serverless (each invocation is independent)
+    } as nodemailer.TransportOptions);
   }
 
   async onModuleInit() {
@@ -39,8 +42,10 @@ export class MailService implements OnModuleInit {
       this.logger.log('✅ SMTP connection verified successfully');
     } catch (error) {
       this.smtpReady = false;
-      this.logger.error('❌ SMTP connection verification failed:', error.message);
-      this.logger.error('Email sending will likely fail. Please check SMTP credentials in .env');
+      this.logger.warn(`⚠️ SMTP verification failed: ${error.message}`);
+      this.logger.warn('Email sending will attempt on-demand. Check SMTP credentials if emails fail.');
+      // Do NOT throw — let the app continue running
+      // Emails will be attempted on-demand and errors handled per-request
     }
   }
 
@@ -51,7 +56,7 @@ export class MailService implements OnModuleInit {
   ): Promise<void> {
     const frontendUrl = this.configService.get(
       'FRONTEND_URL',
-      'http://localhost:3000',
+      'https://mylms-jade.vercel.app',
     );
     const verifyUrl = `${frontendUrl}/verify-email?token=${token}`;
     const appName = this.configService.get('APP_NAME', 'LMS Bhuana EduTech');
@@ -116,10 +121,6 @@ export class MailService implements OnModuleInit {
     const fromAddress = this.configService.get('SMTP_FROM', this.configService.get('SMTP_USER'));
 
     try {
-      if (!this.smtpReady) {
-        this.logger.warn('SMTP not verified as ready, attempting to send anyway...');
-      }
-
       const info = await this.transporter.sendMail({
         from: `"${appName}" <${fromAddress}>`,
         to: email,
@@ -142,10 +143,12 @@ export class MailService implements OnModuleInit {
   ): Promise<void> {
     const frontendUrl = this.configService.get(
       'FRONTEND_URL',
-      'http://localhost:3000',
+      'https://mylms-jade.vercel.app',
     );
     const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
     const appName = this.configService.get('APP_NAME', 'LMS Bhuana EduTech');
+
+    this.logger.log(`Preparing password reset email for ${email}, resetUrl: ${resetUrl}`);
 
     const html = `
       <!DOCTYPE html>
@@ -207,10 +210,6 @@ export class MailService implements OnModuleInit {
     const fromAddress = this.configService.get('SMTP_FROM', this.configService.get('SMTP_USER'));
 
     try {
-      if (!this.smtpReady) {
-        this.logger.warn('SMTP not verified as ready, attempting to send anyway...');
-      }
-
       const info = await this.transporter.sendMail({
         from: `"${appName}" <${fromAddress}>`,
         to: email,
