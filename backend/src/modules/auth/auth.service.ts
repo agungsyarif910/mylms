@@ -53,12 +53,18 @@ export class AuthService {
       },
     });
 
-    // Send verification email (non-blocking)
-    this.mailService
-      .sendVerificationEmail(user.email, user.fullName, emailVerifyToken)
-      .catch((err) => {
-        console.error('Failed to send verification email:', err.message);
-      });
+    // Send verification email (await so errors are caught)
+    try {
+      await this.mailService.sendVerificationEmail(
+        user.email,
+        user.fullName,
+        emailVerifyToken,
+      );
+    } catch (err) {
+      console.error('Failed to send verification email:', err.message);
+      // User is created but email failed — don't block registration
+      // They can use resend-verification later
+    }
 
     return {
       message:
@@ -145,16 +151,23 @@ export class AuthService {
       },
     });
 
-    // Send verification email
-    this.mailService
-      .sendVerificationEmail(user.email, user.fullName, emailVerifyToken)
-      .catch((err) => {
-        console.error('Failed to resend verification email:', err.message);
-      });
+    // Send verification email (await for proper error handling)
+    try {
+      await this.mailService.sendVerificationEmail(
+        user.email,
+        user.fullName,
+        emailVerifyToken,
+      );
+    } catch (err) {
+      console.error('Failed to resend verification email:', err.message);
+      throw new BadRequestException(
+        'Gagal mengirim email verifikasi. Silakan coba lagi nanti.',
+      );
+    }
 
     return {
       message:
-        'Jika email terdaftar, kami akan mengirimkan link verifikasi baru.',
+        'Link verifikasi baru telah dikirim ke email Anda.',
     };
   }
 
@@ -172,20 +185,37 @@ export class AuthService {
       throw new UnauthorizedException('Akun Anda telah dinonaktifkan');
     }
 
-    // Check if email is verified
-    if (!user.emailVerifiedAt) {
-      throw new UnauthorizedException(
-        'Email belum diverifikasi. Silakan cek inbox email Anda atau minta kirim ulang verifikasi.',
-      );
-    }
-
-    // Verify password
+    // Verify password first
     const isPasswordValid = await bcrypt.compare(
       dto.password,
       user.passwordHash,
     );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Email atau password salah');
+    }
+
+    // Check if email is verified
+    if (!user.emailVerifiedAt) {
+      // Auto-resend verification email
+      const emailVerifyToken = crypto.randomBytes(32).toString('hex');
+      const emailVerifyExpiresAt = new Date();
+      emailVerifyExpiresAt.setHours(emailVerifyExpiresAt.getHours() + 24);
+
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifyToken, emailVerifyExpiresAt },
+      });
+
+      // Send verification email (non-blocking — don't block login response)
+      this.mailService
+        .sendVerificationEmail(user.email, user.fullName, emailVerifyToken)
+        .catch((err) => {
+          console.error('Failed to auto-resend verification email:', err.message);
+        });
+
+      throw new UnauthorizedException(
+        'Email belum diverifikasi. Kami telah mengirim ulang email verifikasi ke inbox Anda.',
+      );
     }
 
     // Generate tokens
