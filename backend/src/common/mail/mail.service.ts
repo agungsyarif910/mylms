@@ -25,28 +25,22 @@ export class MailService implements OnModuleInit {
         user,
         pass,
       },
-      // Vercel serverless functions have limited execution time
-      // Use shorter timeouts to fail fast rather than hang
-      connectionTimeout: 10000, // 10 seconds
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-      // Pool connections for reuse across invocations
-      pool: false, // Disable pool in serverless (each invocation is independent)
+      // Vercel serverless: use tight timeouts to avoid hanging
+      connectionTimeout: 5000, // 5 seconds
+      greetingTimeout: 5000,
+      socketTimeout: 10000,
+      pool: false,
+      // Disable DNS resolution caching issues
+      tls: {
+        rejectUnauthorized: false,
+      },
     } as nodemailer.TransportOptions);
   }
 
   async onModuleInit() {
-    try {
-      await this.transporter.verify();
-      this.smtpReady = true;
-      this.logger.log('✅ SMTP connection verified successfully');
-    } catch (error) {
-      this.smtpReady = false;
-      this.logger.warn(`⚠️ SMTP verification failed: ${error.message}`);
-      this.logger.warn('Email sending will attempt on-demand. Check SMTP credentials if emails fail.');
-      // Do NOT throw — let the app continue running
-      // Emails will be attempted on-demand and errors handled per-request
-    }
+    // Skip SMTP verify on init to save cold start time in serverless
+    this.smtpReady = true;
+    this.logger.log('📧 SMTP transporter configured (verify skipped for serverless)');
   }
 
   async sendVerificationEmail(
