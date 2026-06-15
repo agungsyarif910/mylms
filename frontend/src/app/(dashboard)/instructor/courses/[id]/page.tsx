@@ -332,7 +332,7 @@ function StudentsTab({ courseId }: { courseId: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get(`/courses/${courseId}/enrollments`)
+    api.get(`/enrollments/course/${courseId}`)
       .then(res => setEnrollments(Array.isArray(res.data) ? res.data : []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -390,7 +390,7 @@ function GradesTab({ courseId }: { courseId: string }) {
   const [gradeForm, setGradeForm] = useState({ score: 0, notes: '' });
 
   useEffect(() => {
-    api.get(`/courses/${courseId}/enrollments`)
+    api.get(`/enrollments/course/${courseId}`)
       .then(res => setEnrollments(Array.isArray(res.data) ? res.data : []))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -400,7 +400,7 @@ function GradesTab({ courseId }: { courseId: string }) {
     try {
       await api.post('/grades', { enrollmentId, score: gradeForm.score, notes: gradeForm.notes });
       // Refresh enrollments
-      const res = await api.get(`/courses/${courseId}/enrollments`);
+      const res = await api.get(`/enrollments/course/${courseId}`);
       setEnrollments(Array.isArray(res.data) ? res.data : []);
       setGradingId(null);
       setGradeForm({ score: 0, notes: '' });
@@ -412,7 +412,7 @@ function GradesTab({ courseId }: { courseId: string }) {
       await api.post(`/certificates/generate/${enrollmentId}`);
       alert('Sertifikat berhasil dibuat!');
       // Refresh
-      const res = await api.get(`/courses/${courseId}/enrollments`);
+      const res = await api.get(`/enrollments/course/${courseId}`);
       setEnrollments(Array.isArray(res.data) ? res.data : []);
     } catch (err: any) {
       alert(err.response?.data?.message || 'Gagal membuat sertifikat');
