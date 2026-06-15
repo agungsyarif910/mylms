@@ -44,12 +44,13 @@ export class EnrollmentsService {
       throw new ConflictException('Anda sudah terdaftar di course ini');
     }
 
-    // Create enrollment (status PENDING until payment)
+    // If course is free (price = 0), auto-activate. Otherwise PENDING until payment.
+    const isFree = Number(course.price) === 0;
     const enrollment = await this.prisma.enrollment.create({
       data: {
         userId,
         courseId: dto.courseId,
-        status: 'PENDING',
+        status: isFree ? 'ACTIVE' : 'PENDING',
       },
       include: {
         course: {
@@ -59,7 +60,9 @@ export class EnrollmentsService {
     });
 
     return {
-      message: 'Enrollment berhasil, silakan lakukan pembayaran',
+      message: isFree
+        ? 'Enrollment berhasil! Anda langsung terdaftar di course ini.'
+        : 'Enrollment berhasil, silakan lakukan pembayaran.',
       enrollment,
     };
   }
@@ -100,7 +103,7 @@ export class EnrollmentsService {
     return this.prisma.enrollment.findMany({
       where: {
         courseId,
-        status: { in: ['ACTIVE', 'COMPLETED'] },
+        status: { not: 'CANCELLED' },
       },
       include: {
         user: {
